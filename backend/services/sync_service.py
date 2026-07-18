@@ -427,6 +427,12 @@ def _sync_set_card_catalogue(
                 parsed = pokemon_api.parse_card_for_db(card_data, default_set_id=tcg_id, lang=set_lang)
                 parsed = apply_cross_language_fallbacks(db, parsed)
                 upsert_card(db, parsed)
+            # Flush the native cards so the cross-language fallback below sees
+            # them. The session uses autoflush=False, so without this its
+            # "already exists" check misses cards just added in this same
+            # transaction and re-clones them, causing a duplicate-primary-key
+            # crash at commit (e.g. Key (id)=(basep-2_fr) already exists).
+            db.flush()
             if set_total and len(cards_data) < set_total:
                 for parsed in build_missing_language_cards_for_set(db, tcg_id, set_lang, expected_total=set_total):
                     upsert_card(db, parsed)
