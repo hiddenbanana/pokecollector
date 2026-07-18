@@ -20,6 +20,7 @@ import toast from 'react-hot-toast'
 import { TCGDEX_LANGUAGES, normalizeTcgdexLanguageCsv, tcgdexLanguageLabel } from '../utils/tcgdexLanguages'
 import { APP_LANGUAGES } from '../utils/appLanguages'
 import { invalidateTcgdexFilterLanguages } from '../utils/queryInvalidation'
+import { CURRENCIES, currencySymbol as currencySymbolFor } from '../utils/currency'
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -181,17 +182,11 @@ const SUPPORTER_CROWN_COLORS = {
   bronze: '#fb923c',
 }
 
-const CURRENCY_SYMBOLS = {
-  EUR: '€',
-  USD: '$',
-  GBP: '£',
-}
-
 function formatSupporterAmount(amount, currency = 'EUR') {
   const numericAmount = Number(amount || 0)
   const safeCurrency = currency || 'EUR'
   const formattedAmount = Number.isFinite(numericAmount) ? numericAmount.toFixed(2) : '0.00'
-  const symbol = CURRENCY_SYMBOLS[safeCurrency]
+  const symbol = currencySymbolFor(safeCurrency)
   if (symbol) return `${symbol}${formattedAmount}`
   return `${formattedAmount} ${safeCurrency}`
 }
@@ -759,10 +754,7 @@ export default function Settings() {
               <SettingsRow label={t('settings.currency')} description={t('settings.currencyDesc')}>
                 <SelectControl
                   value={currentCurrency}
-                  options={[
-                    { value: 'EUR', label: '€ EUR' },
-                    { value: 'USD', label: '$ USD' },
-                  ]}
+                  options={CURRENCIES.map(c => ({ value: c.code, label: `${c.symbol} ${c.code}` }))}
                   onChange={handleCurrencyChange}
                 />
               </SettingsRow>
