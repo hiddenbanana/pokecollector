@@ -42,6 +42,11 @@ ADMIN_ONLY_KEYS = {
     DIGITAL_SETS_SETTING_KEY,
 }
 
+# Admin-only keys whose VALUE is a secret and must never be returned to
+# non-admins on read, even though other ADMIN_ONLY_KEYS (e.g. sync intervals)
+# are safe to expose for read purposes.
+SENSITIVE_ADMIN_KEYS = {"global_gemini_api_key"}
+
 DEFAULT_SETTINGS = {
     "trainer_name": "TRAINER",
     "full_sync_interval_days": "5",
@@ -113,8 +118,10 @@ def _get_user_settings(db: Session, user_id: int) -> dict:
     for row in db.query(UserSetting).filter(UserSetting.user_id == user_id).all():
         result[row.key] = row.value
 
+    is_admin = _is_admin(db, user_id)
+
     # Env var fallback ONLY for admin — other users get empty defaults
-    if _is_admin(db, user_id):
+    if is_admin:
         if "telegram_bot_token" not in result:
             env_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
             if env_token:
@@ -130,6 +137,13 @@ def _get_user_settings(db: Session, user_id: int) -> dict:
 
     for key, value in DEFAULT_SETTINGS.items():
         result.setdefault(key, value)
+
+    # Secrets stored under SENSITIVE_ADMIN_KEYS (e.g. the global Gemini API
+    # key) must never reach a non-admin caller, whether the value came from
+    # the Setting table or from DEFAULT_SETTINGS.
+    if not is_admin:
+        for sensitive_key in SENSITIVE_ADMIN_KEYS:
+            result.pop(sensitive_key, None)
 
     return result
 
