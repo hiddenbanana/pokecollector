@@ -5,6 +5,7 @@ from api.auth import get_current_user
 from database import get_db
 from services.card_values import effective_market_price, normalize_price_field
 from services.card_visibility import visible_card_filter
+from services.exchange_rates import SUPPORTED_CURRENCIES, currency_symbol, currency_decimals
 from models import CollectionItem, Card, User
 import io
 import csv
@@ -15,21 +16,21 @@ router = APIRouter()
 
 def _normalize_currency(value: str | None) -> tuple[str, str]:
     currency = (value or "EUR").upper()
-    if currency == "USD":
-        return "USD", "$"
-    return "EUR", "€"
+    if currency not in SUPPORTED_CURRENCIES:
+        currency = "EUR"
+    return currency, currency_symbol(currency)
 
 
 def _convert_eur(amount: float | None, exchange_rate: float, currency: str) -> float | None:
     if amount is None:
         return None
-    return float(amount) * exchange_rate if currency == "USD" else float(amount)
+    return float(amount) * exchange_rate if currency != "EUR" else float(amount)
 
 
-def _format_money(amount: float | None, symbol: str) -> str:
+def _format_money(amount: float | None, currency: str) -> str:
     if amount is None:
         return "-"
-    return f"{symbol}{amount:.2f}"
+    return f"{currency_symbol(currency)}{amount:.{currency_decimals(currency)}f}"
 
 
 @router.get("/csv")
@@ -170,13 +171,13 @@ def export_pdf(
                 (card.rarity or "-")[:15],
                 str(item.quantity),
                 item.condition,
-                _format_money(purchase_price, symbol) if purchase_price else "-",
-                _format_money(current_price, symbol) if current_price else "-",
-                _format_money(val, symbol),
+                _format_money(purchase_price, currency) if purchase_price else "-",
+                _format_money(current_price, currency) if current_price else "-",
+                _format_money(val, currency),
             ])
 
         # Summary row
-        data.append(["", "", "", "", "", "", "", "TOTAL:", _format_money(total_value, symbol)])
+        data.append(["", "", "", "", "", "", "", "TOTAL:", _format_money(total_value, currency)])
 
         col_widths = [100, 80, 30, 80, 25, 50, 45, 55, 55]
         table = Table(data, colWidths=col_widths)
