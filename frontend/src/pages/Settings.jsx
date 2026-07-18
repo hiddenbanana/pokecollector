@@ -304,6 +304,8 @@ export default function Settings() {
 
   const [geminiKey, setGeminiKey] = useState('')
   const [geminiDirty, setGeminiDirty] = useState(false)
+  const [globalGeminiKey, setGlobalGeminiKey] = useState('')
+  const [globalGeminiDirty, setGlobalGeminiDirty] = useState(false)
   const [backupOptions, setBackupOptions] = useState(['full'])
   const [debugModeEnabled, setDebugModeEnabled] = useState(false)
 
@@ -339,6 +341,12 @@ export default function Settings() {
   const { data: geminiKeyData } = useQuery({
     queryKey: ['setting', 'gemini_api_key'],
     queryFn: () => getSetting('gemini_api_key').catch(() => ({ value: '' })),
+  })
+
+  const { data: globalGeminiKeyData } = useQuery({
+    queryKey: ['setting', 'global_gemini_api_key'],
+    queryFn: () => getSetting('global_gemini_api_key').catch(() => ({ value: '' })),
+    enabled: user?.role === 'admin',
   })
 
 
@@ -394,7 +402,8 @@ export default function Settings() {
 
   useEffect(() => {
     if (geminiKeyData?.value !== undefined && !geminiDirty) setGeminiKey(geminiKeyData.value)
-  }, [geminiKeyData])
+    if (globalGeminiKeyData?.value !== undefined && !globalGeminiDirty) setGlobalGeminiKey(globalGeminiKeyData.value)
+  }, [geminiKeyData, globalGeminiKeyData])
 
   useEffect(() => {
     setDebugModeEnabled(settings.debug_mode === 'true')
@@ -779,7 +788,7 @@ export default function Settings() {
           <section className="space-y-1">
             <SectionHeader title={t('settings.sectionAI')} />
             <SettingsCard>
-              <SettingsRow label={t('settings.geminiApiKey')} description={t('settings.geminiApiKeyDesc')} last>
+              <SettingsRow label={t('settings.geminiApiKey')} description={t('settings.geminiApiKeyDesc')}>
                 <div className="flex items-center gap-2 w-full mt-2">
                   <input
                     type={geminiDirty ? "text" : "password"}
@@ -807,6 +816,36 @@ export default function Settings() {
                   )}
                 </div>
               </SettingsRow>
+              {user?.role === 'admin' && (
+                <SettingsRow label={t('settings.globalGeminiApiKey')} description={t('settings.globalGeminiApiKeyDesc')} last>
+                  <div className="flex items-center gap-2 w-full mt-2">
+                    <input
+                      type={globalGeminiDirty ? "text" : "password"}
+                      value={globalGeminiKey}
+                      onChange={e => { setGlobalGeminiKey(e.target.value); setGlobalGeminiDirty(true) }}
+                      placeholder="AIza..."
+                      className="input flex-1 text-xs font-mono"
+                      style={{ minWidth: 0 }}
+                    />
+                    {globalGeminiKey && !globalGeminiDirty && (
+                      <span className="text-xs text-green flex-shrink-0">✅</span>
+                    )}
+                    {globalGeminiDirty && (
+                      <button
+                        onClick={async () => {
+                          await saveSetting('global_gemini_api_key', globalGeminiKey)
+                          setGlobalGeminiDirty(false)
+                          queryClient.invalidateQueries({ queryKey: ['setting', 'global_gemini_api_key'] })
+                          toast.success(t('settings.apiKeySaved'))
+                        }}
+                        className="btn-primary-sm flex-shrink-0"
+                      >
+                        {t('common.save')}
+                      </button>
+                    )}
+                  </div>
+                </SettingsRow>
+              )}
             </SettingsCard>
           </section>
 

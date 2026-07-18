@@ -776,6 +776,8 @@ const en = {
     importing: 'Running…',
     geminiApiKey: 'Gemini API Key',
     geminiApiKeyDesc: 'For camera card recognition (free at Google AI Studio)',
+    globalGeminiApiKey: 'Shared Gemini API Key (all users)',
+    globalGeminiApiKeyDesc: 'Used for card recognition by any user without their own key',
     apiKeySaved: 'API Key saved',
     telegramBotToken: 'Telegram Bot Token',
     telegramBotTokenDesc: 'Bot Token from @BotFather',
