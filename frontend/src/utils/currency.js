@@ -19,14 +19,14 @@ export function formatCurrency(amount, code) {
 }
 
 export function currencySymbol(code) {
-  const currency = CODES.has(code) ? code : 'EUR'
+  const upper = String(code || '').toUpperCase()
   try {
-    const parts = new Intl.NumberFormat('en', { style: 'currency', currency }).formatToParts(0)
+    const parts = new Intl.NumberFormat('en', { style: 'currency', currency: upper }).formatToParts(0)
     const part = parts.find(p => p.type === 'currency')
     if (part) return part.value
   } catch {
-    // fall through
+    // fall through - invalid/unrecognized code
   }
-  const entry = CURRENCIES.find(c => c.code === currency)
-  return entry ? entry.symbol : currency
+  const entry = CURRENCIES.find(c => c.code === upper)
+  return entry ? entry.symbol : upper
 }

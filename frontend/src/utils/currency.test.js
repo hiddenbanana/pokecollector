@@ -25,4 +25,14 @@ describe('currency utils', () => {
     expect(currencySymbol('GBP')).toBe('£')
     expect(currencySymbol('EUR')).toBe('€')
   })
+
+  it('does not mislabel an unsupported ISO currency as EUR', () => {
+    expect(currencySymbol('SEK')).not.toBe('€')
+    expect(currencySymbol('SEK')).toBe('SEK')
+  })
+
+  it('falls back to the raw uppercased code for an invalid currency', () => {
+    expect(currencySymbol('ZZZ')).toBe('ZZZ')
+    expect(currencySymbol('zzz')).toBe('ZZZ')
+  })
 })
