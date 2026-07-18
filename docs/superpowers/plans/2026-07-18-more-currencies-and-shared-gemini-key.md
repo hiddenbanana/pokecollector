@@ -13,9 +13,11 @@
 - Currency set is exactly: `EUR, USD, GBP, JPY, CAD, AUD, CHF`.
 - JPY has 0 decimal places; all other currencies have 2.
 - No stored monetary values are migrated — conversion is display-time only.
-- Backend tests run in a container (host Node is v18; Vitest needs Node 20+):
-  - Backend: `docker exec pokemon-backend python -m pytest backend/tests/<file> -v` (or `python -m unittest`).
+- Tests run in containers. IMPORTANT: the running `pokemon-backend` container has code **baked in** (no source volume mount) and has **no pytest** — tests are `unittest`. Run backend tests against the working tree by bind-mounting it into the backend image (which carries all deps):
+  - Backend (one module): `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest tests.<module> -v`
+  - Backend (full suite): `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest discover -s tests -v`
   - Frontend: `docker run --rm -v "$PWD/frontend":/app -w /app node:20 npm test` (node:20, NOT alpine).
+  - Run all commands from the repo root (`/storage/appdata/pokecollector`).
 - The env var `GEMINI_API_KEY` → admin **personal** key seeding stays untouched; it does NOT feed the new global key.
 - Frankfurter (`https://api.frankfurter.dev/v2/rate/{from}/{to}`) already supports all 7 currencies; the `/exchange-rate` endpoint needs no new fetch logic.
 - Commit after each task. Do not push or open PRs.
@@ -81,7 +83,7 @@ from services.exchange_rates import (
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `docker exec pokemon-backend python -m pytest backend/tests/test_exchange_rates.py -v`
+Run: `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest tests.test_exchange_rates -v`
 Expected: FAIL — `ImportError: cannot import name 'currency_decimals'` (and the USD/EUR triangulation assertion).
 
 - [ ] **Step 3: Rewrite the top of `exchange_rates.py`**
@@ -151,7 +153,7 @@ Leave `_parse_positive_rate` and `parse_frankfurter_v2_rate` (old lines 28-39) u
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `docker exec pokemon-backend python -m pytest backend/tests/test_exchange_rates.py -v`
+Run: `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest tests.test_exchange_rates -v`
 Expected: PASS (all tests).
 
 - [ ] **Step 5: Commit**
@@ -218,7 +220,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `docker exec pokemon-backend python -m pytest backend/tests/test_export_currency.py -v`
+Run: `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest tests.test_export_currency -v`
 Expected: FAIL — `_format_money` signature mismatch / JPY formatting wrong.
 
 - [ ] **Step 3: Rewrite the helpers in `export.py`**
@@ -263,7 +265,7 @@ Change each `symbol` argument to `currency`. (The `symbol` local is still used i
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `docker exec pokemon-backend python -m pytest backend/tests/test_export_currency.py -v`
+Run: `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest tests.test_export_currency -v`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -322,7 +324,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `docker exec pokemon-backend python -m pytest backend/tests/test_telegram_currency.py -v`
+Run: `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest tests.test_telegram_currency -v`
 Expected: FAIL — `cannot import name '_format_user_amount'`.
 
 - [ ] **Step 3: Refactor `telegram.py`**
@@ -379,7 +381,7 @@ def _format_user_eur(amount: float, db=None, user_id=None) -> str:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `docker exec pokemon-backend python -m pytest backend/tests/test_telegram_currency.py -v`
+Run: `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest tests.test_telegram_currency -v`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -702,7 +704,7 @@ class GeminiKeyResolutionTests(unittest.TestCase):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `docker exec pokemon-backend python -m pytest backend/tests/test_recognize.py::GeminiKeyResolutionTests -v`
+Run: `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest tests.test_recognize.GeminiKeyResolutionTests -v`
 Expected: FAIL — global fallback not implemented (`test_falls_back_to_global_key` returns `""`).
 
 - [ ] **Step 3: Add the global key to settings routing**
@@ -748,7 +750,7 @@ At the top of `recognize.py`, confirm the models import includes `Setting`. Run 
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `docker exec pokemon-backend python -m pytest backend/tests/test_recognize.py -v`
+Run: `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest tests.test_recognize -v`
 Expected: PASS (all classes).
 
 - [ ] **Step 6: Commit**
@@ -868,7 +870,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Run the whole backend test suite**
 
-Run: `docker exec pokemon-backend python -m pytest backend/tests -v`
+Run: `docker run --rm -v "$PWD/backend":/app/backend -w /app/backend pokecollector-backend python -m unittest discover -s tests -v`
 Expected: PASS (no regressions in the other 20 files).
 
 - [ ] **Step 2: Run the whole frontend test suite + build**
