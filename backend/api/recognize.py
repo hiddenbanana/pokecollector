@@ -51,14 +51,16 @@ def gemini_error_message(resp: httpx.Response) -> str:
 
 
 def get_gemini_key(db: Session, user_id: int = None) -> str:
-    """Read Gemini API key from user settings only. No cross-user fallback."""
+    """Read Gemini API key: per-user key first, then the admin global key."""
     if user_id is not None:
         row = db.query(UserSetting).filter(
             UserSetting.user_id == user_id, UserSetting.key == "gemini_api_key"
         ).first()
         if row and row.value:
             return row.value
-    # No global/env fallback — each user must configure their own key
+    global_row = db.query(Setting).filter(Setting.key == "global_gemini_api_key").first()
+    if global_row and global_row.value:
+        return global_row.value
     return ""
 
 

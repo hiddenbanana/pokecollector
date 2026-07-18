@@ -38,6 +38,7 @@ ADMIN_ONLY_KEYS = {
     "full_sync_interval_days", "price_sync_interval_minutes", "multi_user_mode",
     "tcgdex_sync_languages", "debug_mode",
     "cross_language_price_fallback", "cross_language_image_fallback",
+    "global_gemini_api_key",
     DIGITAL_SETS_SETTING_KEY,
 }
 
@@ -60,6 +61,7 @@ DEFAULT_SETTINGS = {
     "cross_language_price_fallback": "true",
     "cross_language_image_fallback": "true",
     "debug_mode": "false",
+    "global_gemini_api_key": "",
 }
 
 

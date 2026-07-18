@@ -57,5 +57,38 @@ class RecognizeApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("no longer available", ctx.exception.detail)
 
 
+@unittest.skipUnless(API_TEST_DEPS_AVAILABLE, "FastAPI/httpx are not installed")
+class GeminiKeyResolutionTests(unittest.TestCase):
+    def _session(self):
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from models import Base
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        return sessionmaker(bind=engine)()
+
+    def test_user_key_takes_priority(self):
+        from api.recognize import get_gemini_key
+        from models import UserSetting, Setting
+        db = self._session()
+        db.add(UserSetting(user_id=1, key="gemini_api_key", value="user-key"))
+        db.add(Setting(key="global_gemini_api_key", value="global-key"))
+        db.commit()
+        self.assertEqual(get_gemini_key(db, 1), "user-key")
+
+    def test_falls_back_to_global_key(self):
+        from api.recognize import get_gemini_key
+        from models import Setting
+        db = self._session()
+        db.add(Setting(key="global_gemini_api_key", value="global-key"))
+        db.commit()
+        self.assertEqual(get_gemini_key(db, 1), "global-key")
+
+    def test_empty_when_neither_set(self):
+        from api.recognize import get_gemini_key
+        db = self._session()
+        self.assertEqual(get_gemini_key(db, 1), "")
+
+
 if __name__ == "__main__":
     unittest.main()
