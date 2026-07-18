@@ -21,6 +21,7 @@ import th from '../i18n/th'
 import zhTw from '../i18n/zhTw'
 import { priceFieldFromPrimary } from '../utils/prices'
 import { normalizeTcgdexLanguageCsv } from '../utils/tcgdexLanguages'
+import { formatCurrency, currencySymbol } from '../utils/currency'
 import { useAuth } from './AuthContext'
 
 const translations = {
@@ -92,10 +93,10 @@ export function SettingsProvider({ children }) {
   const { user, loading: authLoading, multiUser } = useAuth()
   const [settings, setSettings] = useState(initialSettings)
   const [loaded, setLoaded] = useState(false)
-  const [exchangeRate, setExchangeRate] = useState(1.0)
+  const [exchangeRate, setExchangeRate] = useState(1.0)          // EUR -> selected
   const [exchangeRateReady, setExchangeRateReady] = useState(true)
   const [exchangeRateCurrency, setExchangeRateCurrency] = useState('EUR')
-  const [usdToEurRate, setUsdToEurRate] = useState(0.91)
+  const [usdToCurrencyRate, setUsdToCurrencyRate] = useState(1.0) // USD -> selected
 
   // Load settings from backend once auth mode is known. Single-user mode has no
   // token, but the backend still auto-authenticates the bootstrap admin.
@@ -134,17 +135,16 @@ export function SettingsProvider({ children }) {
   }, [authLoading, multiUser, user?.id])
 
   // Fetch exchange rates through the backend to avoid browser CORS/redirect issues.
-  // Most app prices are stored in EUR; TCGPlayer prices are stored in USD and need the inverse path.
+  // EUR-native amounts convert with EUR->selected; TCGPlayer USD amounts with USD->selected.
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (authLoading || (multiUser && !token)) return
 
     const fetchExchangeRate = async (from, to, fallback) => {
+      if (from === to) return 1.0
       try {
         const headers = token && multiUser ? { Authorization: `Bearer ${token}` } : {}
-        const response = await fetch(`/api/settings/exchange-rate?from=${from}&to=${to}`, {
-          headers,
-        })
+        const response = await fetch(`/api/settings/exchange-rate?from=${from}&to=${to}`, { headers })
         if (!response.ok) throw new Error('Exchange rate lookup failed')
         const data = await response.json()
         return Number(data.rate) || fallback
@@ -155,25 +155,20 @@ export function SettingsProvider({ children }) {
 
     const curr = settings.currency || 'EUR'
     let cancelled = false
-    if (curr === 'USD') {
-      setExchangeRateReady(false)
-      setExchangeRateCurrency(null)
-      setExchangeRate(1.1)
-      fetchExchangeRate('EUR', 'USD', 1.1).then(rate => {
-        if (!cancelled) {
-          setExchangeRate(rate)
-          setExchangeRateCurrency('USD')
-          setExchangeRateReady(true)
-        }
-      })
-    } else {
+    setExchangeRateReady(curr === 'EUR')
+    setExchangeRateCurrency(curr === 'EUR' ? 'EUR' : null)
+    setExchangeRate(curr === 'EUR' ? 1.0 : 1.0)
+
+    Promise.all([
+      fetchExchangeRate('EUR', curr, 1.0),
+      fetchExchangeRate('USD', curr, 1.0),
+    ]).then(([eurRate, usdRate]) => {
+      if (cancelled) return
+      setExchangeRate(eurRate)
+      setUsdToCurrencyRate(usdRate)
+      setExchangeRateCurrency(curr)
       setExchangeRateReady(true)
-      setExchangeRateCurrency('EUR')
-      setExchangeRate(1.0)
-      fetchExchangeRate('USD', 'EUR', 0.91).then(rate => {
-        if (!cancelled) setUsdToEurRate(rate)
-      })
-    }
+    })
     return () => { cancelled = true }
   }, [settings.currency, authLoading, multiUser, user?.id])
 
@@ -246,22 +241,20 @@ export function SettingsProvider({ children }) {
   }, [settings.price_primary])
 
   const currency = settings.currency || 'EUR'
-  const currencySymbol = currency === 'USD' ? '$' : '€'
-  const moneyExchangeRateReady = currency !== 'USD' || (exchangeRateReady && exchangeRateCurrency === 'USD')
+  const currencySym = currencySymbol(currency)
+  const moneyExchangeRateReady = currency === 'EUR' || (exchangeRateReady && exchangeRateCurrency === currency)
   const pricePrimary = getPricePrimary()
   const pricePrimaryField = priceFieldFromPrimary(pricePrimary)
 
   const formatPrice = useCallback((eurAmount) => {
     if (eurAmount == null || isNaN(Number(eurAmount))) return '-'
-    const converted = Number(eurAmount) * exchangeRate
-    return `${currencySymbol}${converted.toFixed(2)}`
-  }, [exchangeRate, currencySymbol])
+    return formatCurrency(Number(eurAmount) * exchangeRate, currency)
+  }, [exchangeRate, currency])
 
   const formatUsdPrice = useCallback((usdAmount) => {
     if (usdAmount == null || isNaN(Number(usdAmount))) return '-'
-    const converted = currency === 'USD' ? Number(usdAmount) : Number(usdAmount) * usdToEurRate
-    return `${currencySymbol}${converted.toFixed(2)}`
-  }, [currency, currencySymbol, usdToEurRate])
+    return formatCurrency(Number(usdAmount) * usdToCurrencyRate, currency)
+  }, [usdToCurrencyRate, currency])
 
   return (
     <SettingsContext.Provider value={{
@@ -274,7 +267,7 @@ export function SettingsProvider({ children }) {
       pricePrimaryField,
       loaded,
       currency,
-      currencySymbol,
+      currencySymbol: currencySym,
       exchangeRate,
       exchangeRateReady: moneyExchangeRateReady,
       formatPrice,
