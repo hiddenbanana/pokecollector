@@ -1,51 +1,32 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import de from '../i18n/de'
 import en from '../i18n/en'
-import zh from '../i18n/zh'
-import zhCn from '../i18n/zhCn'
-import sv from '../i18n/sv'
-import fr from '../i18n/fr'
-import nl from '../i18n/nl'
-import es from '../i18n/es'
-import esMx from '../i18n/esMx'
-import it from '../i18n/it'
-import pt from '../i18n/pt'
-import ptBr from '../i18n/ptBr'
-import ptPt from '../i18n/ptPt'
-import pl from '../i18n/pl'
-import ru from '../i18n/ru'
-import ja from '../i18n/ja'
-import ko from '../i18n/ko'
-import id from '../i18n/id'
-import th from '../i18n/th'
-import zhTw from '../i18n/zhTw'
 import { priceFieldFromPrimary } from '../utils/prices'
 import { normalizeTcgdexLanguageCsv } from '../utils/tcgdexLanguages'
 import { formatCurrency, currencySymbol } from '../utils/currency'
 import { useAuth } from './AuthContext'
 
-const translations = {
-  de,
-  en,
-  zh,
-  'zh-cn': zhCn,
-  sv,
-  fr,
-  nl,
-  es,
-  'es-mx': esMx,
-  it,
-  pt,
-  'pt-br': ptBr,
-  'pt-pt': ptPt,
-  pl,
-  ru,
-  ja,
-  ko,
-  id,
-  th,
-  'zh-tw': zhTw,
+const TRANSLATION_LOADERS = {
+  de: () => import('../i18n/de'),
+  zh: () => import('../i18n/zh'),
+  'zh-cn': () => import('../i18n/zhCn'),
+  sv: () => import('../i18n/sv'),
+  fr: () => import('../i18n/fr'),
+  nl: () => import('../i18n/nl'),
+  es: () => import('../i18n/es'),
+  'es-mx': () => import('../i18n/esMx'),
+  it: () => import('../i18n/it'),
+  pt: () => import('../i18n/pt'),
+  'pt-br': () => import('../i18n/ptBr'),
+  'pt-pt': () => import('../i18n/ptPt'),
+  pl: () => import('../i18n/pl'),
+  ru: () => import('../i18n/ru'),
+  ja: () => import('../i18n/ja'),
+  ko: () => import('../i18n/ko'),
+  id: () => import('../i18n/id'),
+  th: () => import('../i18n/th'),
+  'zh-tw': () => import('../i18n/zhTw'),
 }
+const SUPPORTED_LANGUAGES = new Set(['en', ...Object.keys(TRANSLATION_LOADERS)])
 
 const DEFAULT_SETTINGS = {
   language: 'en',
@@ -58,6 +39,7 @@ const DEFAULT_SETTINGS = {
   set_overview_filters: '{}',
   hidden_set_ids: '[]',
   debug_mode: 'false',
+  public_profiles_enabled: 'false',
 }
 
 const LANGUAGE_STORAGE_KEY = 'app_language'
@@ -68,14 +50,14 @@ const LANGUAGE_STORAGE_KEY = 'app_language'
 function readCachedLanguage() {
   try {
     const cached = localStorage.getItem(LANGUAGE_STORAGE_KEY)
-    return cached && translations[cached] ? cached : null
+    return cached && SUPPORTED_LANGUAGES.has(cached) ? cached : null
   } catch {
     return null
   }
 }
 
 function cacheLanguage(language) {
-  if (!language || !translations[language]) return
+  if (!language || !SUPPORTED_LANGUAGES.has(language)) return
   try {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, language)
   } catch {
@@ -97,6 +79,7 @@ export function SettingsProvider({ children }) {
   const [exchangeRateReady, setExchangeRateReady] = useState(true)
   const [exchangeRateCurrency, setExchangeRateCurrency] = useState('EUR')
   const [usdToCurrencyRate, setUsdToCurrencyRate] = useState(1.0) // USD -> selected
+  const [loadedTranslations, setLoadedTranslations] = useState({ en })
 
   // Load settings from backend once auth mode is known. Single-user mode has no
   // token, but the backend still auto-authenticates the bootstrap admin.
@@ -133,6 +116,25 @@ export function SettingsProvider({ children }) {
         setLoaded(true)
       })
   }, [authLoading, multiUser, user?.id])
+
+  const lang = settings.language || DEFAULT_SETTINGS.language
+  useEffect(() => {
+    if (lang === 'en' || loadedTranslations[lang]) return
+    const loader = TRANSLATION_LOADERS[lang]
+    if (!loader) return
+
+    let cancelled = false
+    loader()
+      .then(module => {
+        if (!cancelled) {
+          setLoadedTranslations(previous => ({ ...previous, [lang]: module.default }))
+        }
+      })
+      .catch(() => {
+        // English remains available if a language chunk cannot be loaded.
+      })
+    return () => { cancelled = true }
+  }, [lang, loadedTranslations])
 
   // Fetch exchange rates through the backend to avoid browser CORS/redirect issues.
   // EUR-native amounts convert with EUR->selected; TCGPlayer USD amounts with USD->selected.
@@ -202,8 +204,7 @@ export function SettingsProvider({ children }) {
     }
   }, [settings, multiUser])
 
-  const lang = settings.language || DEFAULT_SETTINGS.language
-  const msgs = translations[lang] || translations.en
+  const msgs = loadedTranslations[lang] || en
 
   // Translation helper
   const t = useCallback((path) => {
@@ -215,7 +216,7 @@ export function SettingsProvider({ children }) {
     }
     if (val === undefined) {
       // Fallback to English
-      let fallback = translations.en
+      let fallback = en
       for (const part of parts) {
         fallback = fallback?.[part]
         if (fallback === undefined) break

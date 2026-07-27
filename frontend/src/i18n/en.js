@@ -94,6 +94,7 @@ const en = {
     no: 'No',
     ok: 'OK',
     close: 'Close',
+    copy: 'Copy',
     new: 'NEW',
     seen: 'Seen',
     all: 'All',
@@ -441,6 +442,10 @@ const en = {
     createFailed: 'Failed to create binder',
     updateFailed: 'Failed to update binder',
     deleteConfirm: 'Delete binder?',
+    sharePublicly: 'Share publicly',
+    publicUpdated: 'Sharing setting updated',
+    enablePublicProfileHint: 'Enable your public profile in Settings to share',
+    copyPublicLink: 'Copy public link',
   },
 
   // Analytics
@@ -701,6 +706,19 @@ const en = {
     sectionData: 'Data',
     sectionAI: 'AI / Card Scanner',
     sectionAbout: 'About the App',
+    sectionPublicProfile: 'Public Profile',
+    publicProfilesGlobal: 'Public profiles and shared binders',
+    publicProfilesGlobalEnabledDesc: 'Enabled for this installation. Users can publish a profile and selected collection binders.',
+    publicProfilesGlobalDisabledDesc: 'Disabled for this installation. Existing profile and binder sharing choices are preserved but unavailable.',
+    publicTrainerName: 'Public trainer name',
+    publicTrainerNameDesc: 'Uses your trainer name above and automatically creates a safe public URL. Change the trainer name to change the URL.',
+    publicProfileToggle: 'Make my profile public',
+    publicProfileToggleDesc: 'Anyone with the link can view your public binders',
+    publicShowValues: 'Show card market values',
+    publicShowValuesDesc: 'Include estimated prices on your public profile',
+    publicProfileLink: 'Public link',
+    linkCopied: 'Link copied',
+    linkCopyFailed: 'Could not copy the link',
     // Settings page row labels
     multiUserMode: 'Multi-User Mode',
     multiUserModeDesc: 'Enable login screen and user management',
@@ -869,6 +887,22 @@ const en = {
     min1440: 'Every 24 hours',
   },
 
+  publicProfiles: {
+    directory: 'Public collections',
+    directoryEyebrow: 'PokéCollector community',
+    directoryDesc: 'Browse trainers who chose to publish their profile and selected collection binders.',
+    directoryUnavailable: 'Public collections are not available.',
+    noPublicProfiles: 'No trainers have published a profile yet.',
+    sharedBinderCount: 'shared binder',
+    sharedBindersCount: 'shared binders',
+    backToProfile: 'Back to profile',
+    publicCollection: 'Public collection',
+    sharedBinder: 'Shared binder',
+    noSharedBinders: 'No shared binders yet.',
+    profileUnavailable: 'This profile is not available.',
+    binderUnavailable: 'This binder is not available.',
+  },
+
   // Period selector
   period: {
     label: 'Period',
@@ -917,6 +951,9 @@ const en = {
     addOwnedToBinderEmpty: 'You do not own any cards in this set yet.',
     addOwnedToBinderResult: 'Added {added}, skipped {skipped}.',
     addOwnedToBinderFailed: 'Failed to add owned cards to binder.',
+    badgeLegend: 'Badge legend',
+    badgeQuantity: 'Quantity owned',
+    ownedVariantUnknown: 'Owned (variant unknown)',
     sortBy: 'Sort by',
     sort: {
       number: 'Collector number',
@@ -1081,6 +1118,18 @@ const en = {
     allStatuses: 'All statuses',
     ownedComplete: 'Owned complete',
     missingCards: 'Missing cards',
+    sortBy: 'Sort binder cards',
+    amountInBinder: 'Copies in this binder',
+    sort: {
+      recent: 'Recently added',
+      number: 'Collector number',
+      name_asc: 'Name: A-Z',
+      name_desc: 'Name: Z-A',
+      price_desc: 'Price: high to low',
+      price_asc: 'Price: low to high',
+      quantity_desc: 'Quantity: high to low',
+      variant_asc: 'Variant',
+    },
     requiredInBinder: 'Required in binder',
     marketPrice: 'Market price',
     addToWishlist: 'Add to wishlist',
@@ -1155,6 +1204,7 @@ const en = {
     noTrainers: 'No trainers found.',
     compare: 'Compare trainers',
     viewCollection: 'View Collection',
+    viewPublicProfile: 'View public profile',
   },
 
   trainerCard: {

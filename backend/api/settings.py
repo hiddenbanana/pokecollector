@@ -17,6 +17,7 @@ from services.exchange_rates import (
     parse_frankfurter_v2_rate,
 )
 from services.card_visibility import get_visible_filter_languages
+from services.public_profile_feature import PUBLIC_PROFILES_SETTING_KEY
 from services.tcgdex_languages import (
     DEFAULT_TCGDEX_SYNC_LANGUAGES,
     supported_tcgdex_language_payload,
@@ -40,6 +41,7 @@ ADMIN_ONLY_KEYS = {
     "cross_language_price_fallback", "cross_language_image_fallback",
     "global_gemini_api_key",
     DIGITAL_SETS_SETTING_KEY,
+    PUBLIC_PROFILES_SETTING_KEY,
 }
 
 # Admin-only keys whose VALUE is a secret and must never be returned to
@@ -67,6 +69,7 @@ DEFAULT_SETTINGS = {
     "cross_language_image_fallback": "true",
     "debug_mode": "false",
     "global_gemini_api_key": "",
+    PUBLIC_PROFILES_SETTING_KEY: "false",
 }
 
 
@@ -80,7 +83,11 @@ def _normalize_tcgdex_sync_languages(value) -> str:
 def _coerce_setting_value(key: str, value) -> str:
     if key == "tcgdex_sync_languages":
         return _normalize_tcgdex_sync_languages(value)
-    if key in {"debug_mode", "cross_language_price_fallback", "cross_language_image_fallback", DIGITAL_SETS_SETTING_KEY}:
+    if key in {
+        "debug_mode", "cross_language_price_fallback",
+        "cross_language_image_fallback", DIGITAL_SETS_SETTING_KEY,
+        PUBLIC_PROFILES_SETTING_KEY,
+    }:
         return "true" if str(value).lower() in {"true", "1", "yes", "on"} else "false"
     return str(value)
 
@@ -180,6 +187,8 @@ def update_settings(data: dict, db: Session = Depends(get_db), current_user: Use
         coerced_value = _coerce_setting_value(key, value)
         if key in ADMIN_ONLY_KEYS:
             if current_user.role != "admin":
+                if key == PUBLIC_PROFILES_SETTING_KEY:
+                    raise HTTPException(status_code=403, detail="Admin only")
                 continue
             row = db.query(Setting).filter(Setting.key == key).first()
             if row:
